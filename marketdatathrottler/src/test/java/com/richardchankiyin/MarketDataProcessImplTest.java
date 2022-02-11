@@ -20,6 +20,9 @@ public class MarketDataProcessImplTest {
 	@Mock
 	Receiver receiver;
 	
+	@Mock
+	MarketData marketData;
+	
 	@Before
 	public void init() {
 		MockitoAnnotations.initMocks(this);
@@ -74,6 +77,12 @@ public class MarketDataProcessImplTest {
 		impl.start();
 		Mockito.doNothing().when(receiver).onReceive(Mockito.any());				
 		impl.registerReceiver(receiver);
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testOnMessageBeforeStart() {
+		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
+		impl.onMessage(marketData);
 	}
 
 }

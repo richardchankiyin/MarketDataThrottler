@@ -4,4 +4,5 @@ public interface MarketData {
 	public String getSymbol();
 	public double getPrice();
 	public long getUpdateTime();
+	public long getPublishTime();
 }

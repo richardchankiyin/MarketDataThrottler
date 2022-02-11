@@ -4,16 +4,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MarketDataProcessorImpl extends MarketDataProcessor {
 	private final IllegalStateException INSTANCE_START_STATE_EXCEPTION = new IllegalStateException("the instance is started");
+	private final IllegalStateException INSTANCE_NOT_START_STATE_EXCEPTION = new IllegalStateException("the instance is not started");
 	
-	private static Logger logger = Logger.getLogger("com.richardchankiyin");
-	private List<Receiver> receivers = new ArrayList<>();
-	private Map<String, AtomicReference<MarketData>> marketDataCache = new HashMap<>();
+	private static final Logger logger = Logger.getLogger("com.richardchankiyin");
+	private static final int QUEUE_CAPACITY = 3000;
+	private final List<Receiver> receivers = new ArrayList<>();
+	private final Map<String, AtomicReference<MarketData>> marketDataCache = new HashMap<>();
+	private final ArrayBlockingQueue<String> publishQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY, true);
 	private boolean isStarted = false;
 	
 	public long getCurrentTimeInMilliseconds() {
@@ -52,7 +56,7 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 	public void loadSymbols(List<String> symbols) {
 		if (!isStarted()) {
 			for (String symbol: symbols) {
-				logger.log(Level.INFO, "init symbol: {}",symbol);
+				logger.log(Level.INFO, "init symbol: {0}",symbol);
 				MarketData data = new MarketDataImpl(symbol, Double.NaN, getCurrentTimeInMilliseconds());
 				AtomicReference<MarketData> ref = new AtomicReference<>(data);
 				marketDataCache.put(symbol, ref);
@@ -78,12 +82,31 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 	/********* Post-start calls **************/
 	@Override
 	public void onMessage(MarketData data) {
-		// TODO Auto-generated method stub
-
+		if (!isStarted()) {
+			throw INSTANCE_NOT_START_STATE_EXCEPTION;
+		}
+		if (data != null) {
+			String symbol = data.getSymbol();
+			if (symbol != null) {
+				AtomicReference<MarketData> ref = marketDataCache.get(symbol);
+				if (ref != null) {
+					//TODO perform compare and swap. And retry only once
+				} else {
+					logger.log(Level.WARNING, "symbol {0} not loaded before", symbol);
+				}
+				
+			} else {
+				logger.warning("symbol is null");
+			}
+		} else {
+			logger.warning("Market Data is null");
+		}
+		
 	}
 
 	@Override
 	public void publishAggregatedMarketData(MarketData data) {
+		
 		// TODO Auto-generated method stub
 
 	}

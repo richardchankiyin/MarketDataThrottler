@@ -155,21 +155,27 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 						long updateTime = data.getUpdateTime();
 						MarketData dataUp = new MarketDataImpl(symbol, price, updateTime);
 						MarketData dataExp = ref.get();
-						// check whether data updated without published.
-						boolean dataNotPub = dataExp.getPublishTime() == MarketDataImpl.PUBLISH_TIME_NO_PUB;
-						boolean dataJustInit = dataExp.getUpdateTime() == MarketDataImpl.UPDATE_TIME_INIT_LOAD;
-						updated = ref.compareAndSet(dataExp, dataUp);
-						if (!dataNotPub || dataJustInit) {
-							// if data publish, that means queue has no symbol
-							boolean inserted = pushSymbolToQueue(symbol);
-							logger.log(Level.INFO, "symbol {0} inserted into cache", symbol);
-							logger.log(Level.INFO, "inserted? {0}", inserted);
+						// check update time of incoming entry is later then the one cached. If not skip
+						if (dataExp.getUpdateTime() <= dataUp.getUpdateTime()) {
+							// check whether data updated without published.
+							boolean dataNotPub = dataExp.getPublishTime() == MarketDataImpl.PUBLISH_TIME_NO_PUB;
+							boolean dataJustInit = dataExp.getUpdateTime() == MarketDataImpl.UPDATE_TIME_INIT_LOAD;
+							updated = ref.compareAndSet(dataExp, dataUp);
+							if (!dataNotPub || dataJustInit) {
+								// if data publish, that means queue has no symbol
+								boolean inserted = pushSymbolToQueue(symbol);
+								logger.log(Level.INFO, "symbol {0} inserted into cache", symbol);
+								logger.log(Level.INFO, "inserted? {0}", inserted);
+							} else {
+								logger.log(Level.INFO, "symbol {0} not published before this update", symbol);
+							}
+							
+							attempts++;
+							if (updated == true || attempts == maxattempts) {
+								updateAttempt = false;
+							}	
 						} else {
-							logger.log(Level.INFO, "symbol {0} not published before this update", symbol);
-						}
-						
-						attempts++;
-						if (updated == true || attempts == maxattempts) {
+							// do not update
 							updateAttempt = false;
 						}
 					} while (updateAttempt);					

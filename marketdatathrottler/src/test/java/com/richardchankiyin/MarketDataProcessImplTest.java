@@ -127,6 +127,26 @@ public class MarketDataProcessImplTest {
 	}
 	
 	@Test
+	public void testOnMessageAfterStartStaleDataNotCached() {
+		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
+		impl.loadSymbols(Arrays.asList("TEST1","TEST2","TEST3"));
+		impl.start();
+		MarketData data = new MarketDataImpl("TEST1", 10.2, impl.getCurrentTimeInMilliseconds());
+		MarketData data2 = new MarketDataImpl("TEST1", 10.4, impl.getCurrentTimeInMilliseconds() + 10);
+		impl.onMessage(data2);
+		try {
+			impl.onMessage(data);
+		} catch (Exception e) {
+			assertEquals(IllegalStateException.class, e.getClass());
+			assertEquals("data not updated", e.getMessage());
+		}
+		
+		MarketData cache = impl.getCache("TEST1");
+		assertTrue(10.4 == cache.getPrice());
+	}
+	
+	
+	@Test
 	public void testPublishAggregatedMarketData() throws Exception{
 		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
 		impl.loadSymbols(Arrays.asList("TEST1","TEST2","TEST3"));
@@ -156,7 +176,7 @@ public class MarketDataProcessImplTest {
 		assertTrue(updateTime == updateTimeReceived.get(0));
 	}
 	
-	//TODO to be continued
+	@Test
 	public void testOnMessageAndPublishAutomaticallyUnderThreshold() throws Exception{
 		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
 		impl.loadSymbols(Arrays.asList("TEST1","TEST2","TEST3"));
@@ -179,13 +199,20 @@ public class MarketDataProcessImplTest {
 		MarketData data3 = new MarketDataImpl("TEST3", 10.4, updateTime, impl.getCurrentTimeInMilliseconds());
 		impl.onMessage(data1);
 		impl.onMessage(data2);
-		impl.onMessage(data3);
-		impl.stop();
+		impl.onMessage(data3);		
 		// we want to wait for a while to have receiver received
-		Thread.sleep(1000);
+		Thread.sleep(100);
 		assertEquals(3, symbolsReceived.size());
 		assertEquals(3, priceReceived.size());
 		assertEquals(3, updateTimeReceived.size());
+		assertEquals("TEST1", symbolsReceived.get(0));
+		assertTrue(10.2 == priceReceived.get(0));
+		assertEquals("TEST2", symbolsReceived.get(1));
+		assertTrue(10.3 == priceReceived.get(1));
+		assertEquals("TEST3", symbolsReceived.get(2));
+		assertTrue(10.4 == priceReceived.get(2));
+		
+		impl.stop();
 	}
 
 }

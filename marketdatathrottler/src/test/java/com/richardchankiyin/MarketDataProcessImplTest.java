@@ -290,7 +290,7 @@ public class MarketDataProcessImplTest {
 		assertEquals(100, priceReceived.size());
 		assertEquals(100, updateTimeReceived.size());
 		// we want to wait for a while to have receiver received
-		Thread.sleep(1100);
+		Thread.sleep(1500);
 		assertEquals(150, symbolsReceived.size());
 		assertEquals(150, priceReceived.size());
 		assertEquals(150, updateTimeReceived.size());

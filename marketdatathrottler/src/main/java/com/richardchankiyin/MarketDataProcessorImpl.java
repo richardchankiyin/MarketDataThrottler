@@ -27,15 +27,25 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 	private boolean isStarted = false;
 	private Thread throttleControllerThread = null;
 	
-	
+	/**
+	 * To return current timestamp
+	 * @return
+	 */
 	public long getCurrentTimeInMilliseconds() {
 		return System.currentTimeMillis();
 	}
 	
+	/**
+	 * Check whether the instance is started
+	 * @return
+	 */
 	public boolean isStarted() {
 		return this.isStarted;
 	}
 	
+	/**
+	 * Start the instance
+	 */
 	public void start() {
 		isStarted = true;
 		// start publishing here
@@ -86,11 +96,19 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 		throttleControllerThread.start();
 	}
 	
+	/**
+	 * Stop the instance
+	 */
 	public void stop() {
 		isStarted = false;
 		if (executorPool != null) executorPool.shutdown();
 	}
 	
+	/**
+	 * Get cached market data value based on Symbol
+	 * @param symbol
+	 * @return
+	 */
 	public MarketData getCache(String symbol) {
 		AtomicReference<MarketData> ref = marketDataCache.get(symbol);
 		if (ref != null) {
@@ -100,13 +118,21 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 		}
 	}
 	
+	/**
+	 * Get no of registered receivers
+	 * @return
+	 */
 	public int getNoOfRegisteredReceivers() {
 		return receivers.size();
 	}
 	
 	
 	/********* Pre-start calls **************/
-	/* can only perform loadSymbols when isStarted = false */
+	/**
+	 * load symbols into the instance. Can only do that
+	 * before the instance is started
+	 * @param symbols
+	 */
 	public void loadSymbols(List<String> symbols) {
 		if (!isStarted()) {
 			//init queue with size of symbols
@@ -124,7 +150,11 @@ public class MarketDataProcessorImpl extends MarketDataProcessor {
 	}
 	
 	
-	/* can only perform loadSymbols when isStarted = false */
+	/**
+	 * register receiver. Can only do that
+	 * before the instance is started
+	 * @param receiver
+	 */
 	public void registerReceiver(Receiver receiver) {
 		if (!isStarted()) {
 			receivers.add(receiver);

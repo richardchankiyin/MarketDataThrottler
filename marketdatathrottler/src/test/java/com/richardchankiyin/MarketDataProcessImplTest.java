@@ -214,5 +214,85 @@ public class MarketDataProcessImplTest {
 		
 		impl.stop();
 	}
+	
+	@Test
+	public void testOnMessageAndPublishAutomaticallyAtThreshold() throws Exception {
+		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
+		List<String> symbols = new ArrayList<>();
+		for (int i = 0; i < 100; i++) {
+			symbols.add("TEST" + i);
+		}
+		impl.loadSymbols(symbols);
+		List<String> symbolsReceived = new ArrayList<>();
+		List<Double> priceReceived = new ArrayList<>();
+		List<Long> updateTimeReceived = new ArrayList<>();
+		final long updateTime = impl.getCurrentTimeInMilliseconds();
+		Receiver receiver = new Receiver() {
+			@Override
+			public void onReceive(MarketData data) {
+				symbolsReceived.add(data.getSymbol());
+				priceReceived.add(data.getPrice());
+				updateTimeReceived.add(data.getUpdateTime());
+			}
+		};
+		impl.registerReceiver(receiver);
+		impl.start();
+		
+		
+		List<MarketData> datas = new ArrayList<>();
+		for (int i = 0; i < 100; i++) {
+			datas.add(new MarketDataImpl("TEST" + i, 10, updateTime));
+		}
+		for (MarketData data: datas) {
+			impl.onMessage(data);
+		}
+		// we want to wait for a while to have receiver received
+		Thread.sleep(100);
+		assertEquals(100, symbolsReceived.size());
+		assertEquals(100, priceReceived.size());
+		assertEquals(100, updateTimeReceived.size());
+	}
 
+	@Test
+	public void testOnMessageAndPublishAutomaticallyOverThreshold() throws Exception {
+		MarketDataProcessorImpl impl = new MarketDataProcessorImpl();
+		List<String> symbols = new ArrayList<>();
+		for (int i = 0; i < 150; i++) {
+			symbols.add("TEST" + i);
+		}
+		impl.loadSymbols(symbols);
+		List<String> symbolsReceived = new ArrayList<>();
+		List<Double> priceReceived = new ArrayList<>();
+		List<Long> updateTimeReceived = new ArrayList<>();
+		final long updateTime = impl.getCurrentTimeInMilliseconds();
+		Receiver receiver = new Receiver() {
+			@Override
+			public void onReceive(MarketData data) {
+				symbolsReceived.add(data.getSymbol());
+				priceReceived.add(data.getPrice());
+				updateTimeReceived.add(data.getUpdateTime());
+			}
+		};
+		impl.registerReceiver(receiver);
+		impl.start();
+		
+		
+		List<MarketData> datas = new ArrayList<>();
+		for (int i = 0; i < 150; i++) {
+			datas.add(new MarketDataImpl("TEST" + i, 10, updateTime));
+		}
+		for (MarketData data: datas) {
+			impl.onMessage(data);
+		}
+		// we want to wait for a while to have receiver received
+		Thread.sleep(100);
+		assertEquals(100, symbolsReceived.size());
+		assertEquals(100, priceReceived.size());
+		assertEquals(100, updateTimeReceived.size());
+		// we want to wait for a while to have receiver received
+		Thread.sleep(1100);
+		assertEquals(150, symbolsReceived.size());
+		assertEquals(150, priceReceived.size());
+		assertEquals(150, updateTimeReceived.size());
+	}
 }
